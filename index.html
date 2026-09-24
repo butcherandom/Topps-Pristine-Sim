@@ -31,46 +31,69 @@
   .count-row .n b{ color:var(--text); font-variant-numeric:tabular-nums; }
   .cards{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
   @media(max-width:540px){ .cards{ grid-template-columns:repeat(2,1fr); } }
-  .card{
-    aspect-ratio:3/4; border-radius:10px; background:var(--panel2); border:1px solid var(--line);
-    display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center;
-    padding:10px 8px; position:relative; overflow:hidden;
+
+  .card-container{
+    aspect-ratio:3/4; perspective:1000px; cursor:pointer;
   }
-  .card .cat-badge{
+  .card-container.unclickable{ cursor:default; }
+  
+  .card-inner{
+    position:relative; width:100%; height:100%;
+    transition:transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style:preserve-3d;
+  }
+  .card-container.revealed .card-inner{
+    transform:rotateY(180deg);
+  }
+
+  .card-face{
+    position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    border-radius:10px; border:1px solid var(--line); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:10px 8px; overflow:hidden;
+  }
+
+  .card-back{
+    background:linear-gradient(135deg, var(--panel2) 0%, var(--line) 100%);
+    color:var(--muted); font-weight:800; font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+  }
+  .card-back span{ font-size:20px; margin-bottom:4px; display:block; color:var(--text); }
+
+  .card-front{
+    background:var(--panel2); transform:rotateY(180deg); justify-content:space-between;
+  }
+
+  .card-front .cat-badge{
     background:rgba(0,0,0,0.35); color:var(--text); font-size:9px; font-weight:800;
     text-transform:uppercase; letter-spacing:0.06em; padding:3px 7px; border-radius:4px;
     border:1px solid rgba(255,255,255,0.15); width:100%; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;
   }
-  .card .card-body{
+  .card-front .card-body{
     display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; width:100%; padding:4px 0;
   }
-  .card .pname{ font-size:12px; font-weight:800; line-height:1.25; color:var(--text); margin-bottom:4px; }
-  .card .det{ font-size:11px; color:var(--text); font-weight:700; background:rgba(0,0,0,0.25); padding:2px 6px; border-radius:4px; border:1px solid rgba(255,255,255,0.1); max-width:100%; word-break:break-word; }
+  .card-front .pname{ font-size:12px; font-weight:800; line-height:1.25; color:var(--text); margin-bottom:4px; }
+  .card-front .det{ font-size:11px; color:var(--text); font-weight:700; background:rgba(0,0,0,0.25); padding:2px 6px; border-radius:4px; border:1px solid rgba(255,255,255,0.1); max-width:100%; word-break:break-word; }
   
-  /* Flash animation for /5 or lower */
   @keyframes flashHit {
     0%, 100% { opacity: 1; filter: brightness(1); }
     50% { opacity: 0.4; filter: brightness(1.8); }
   }
-  .card.flash {
+  .card-front.flash {
     animation: flashHit 0.6s ease-in-out 2;
   }
 
-  /* Gold shine for /50 */
-  .card.gold-shine::after {
+  .card-front.gold-shine::after {
     content:""; position:absolute; inset:0;
     background:linear-gradient(135deg, rgba(234,179,8,0) 0%, rgba(234,179,8,0.45) 50%, rgba(234,179,8,0) 100%);
     animation:shine 1.2s ease-in-out infinite;
     pointer-events:none;
   }
 
-  /* Superfractor golden vinyl appearance */
-  .card.superfractor {
+  .card-front.superfractor {
     background: linear-gradient(135deg, #1c1808 0%, #42360b 50%, #1c1808 100%) !important;
     border-color: #eab308 !important;
     box-shadow: 0 0 15px rgba(234,179,8,0.6);
   }
-  .card.superfractor::before {
+  .card-front.superfractor::before {
     content:""; position:absolute; inset:0;
     background: radial-gradient(circle at 50% 50%, rgba(255,230,128,0.4) 0%, transparent 70%),
                 repeating-radial-gradient(circle at 50% 50%, transparent, transparent 4px, rgba(234,179,8,0.15) 5px, transparent 6px);
@@ -91,7 +114,7 @@
     padding:11px 16px; cursor:pointer; background:var(--panel2); color:var(--text);
   }
   button:focus-visible{ outline:2px solid var(--refractor); outline-offset:2px; }
-  #openBtn{ background:var(--text); color:var(--bg); border-color:transparent; flex:1 1 140px; }
+  #mainActionBtn{ background:var(--text); color:var(--bg); border-color:transparent; flex:1 1 140px; }
   #resetBtn{ margin-left:auto; color:var(--muted); }
   table{ width:100%; border-collapse:collapse; margin-top:22px; font-size:13px; }
   th,td{ text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); }
@@ -103,7 +126,7 @@
 <body>
 <div class="app">
   <h1>2025-26 Topps Pristine Simulator</h1>
-  <p class="sub">Simulating packs with validated checklist separation for veteran, legend, and rookie player pools.</p>
+  <p class="sub">Simulating packs with strict checklist routing, accurate dual auto pairs, and state-tracked card flips.</p>
 
   <div class="stage">
     <div class="count-row">
@@ -113,9 +136,7 @@
     <div class="cards" id="cards"></div>
     <div class="hit-note" id="hitNote">Rip a pack to test your box luck.</div>
     <div class="controls">
-      <button id="openBtn">Rip a pack</button>
-      <button id="open10">Rip ×10</button>
-      <button id="open100">Rip ×100</button>
+      <button id="mainActionBtn">Rip a pack</button>
       <button id="resetBtn">Reset</button>
     </div>
   </div>
@@ -145,6 +166,25 @@ const ROOKIES = [
   "Cooper Flagg (RC)", "Kon Knueppel (RC)", "VJ Edgecombe (RC)", "Jeremiah Fears (RC)", "Derik Queen (RC)", "Cedric Coward (RC)", "Dylan Harper (RC)", "Tre Johnson III (RC)", "Maxime Raynaud (RC)", "Ace Bailey (RC)",
   "Egor Dëmin (RC)", "Ryan Kalkbrenner (RC)", "Will Richard (RC)", "Ryan Nembhard (RC)", "Danny Wolf (RC)", "Collin Murray-Boyles (RC)", "Sion James (RC)", "Walter Clayton Jr. (RC)", "Kobe Sanders (RC)", "Drake Powell (RC)",
   "Kasparas Jakučionis (RC)", "Asa Newell (RC)", "Nique Clifford (RC)", "Ben Saraf (RC)", "Tyrese Proctor (RC)", "Jase Richardson (RC)", "Liam McNeeley (RC)", "Micah Peavy (RC)", "Hugo González (RC)", "Will Riley (RC)"
+];
+
+const DUAL_AUTO_PAIRS = [
+  "Jayson Tatum & Jaylen Brown",
+  "Stephen Curry & Draymond Green",
+  "LeBron James & Anthony Davis",
+  "Luka Dončić & Kyrie Irving",
+  "Nikola Jokić & Jamal Murray",
+  "Shai Gilgeous-Alexander & Chet Holmgren",
+  "Tyrese Haliburton & Pascal Siakam",
+  "Victor Wembanyama & Stephon Castle",
+  "Cooper Flagg (RC) & Dylan Harper (RC)",
+  "Kon Knueppel (RC) & Ace Bailey (RC)",
+  "Devin Booker & Kevin Durant",
+  "Donovan Mitchell & Darius Garland",
+  "Paolo Banchero & Franz Wagner",
+  "Anthony Edwards & Rob Dillingham",
+  "Magic Johnson & Larry Bird",
+  "Shaquille O'Neal & Dwyane Wade"
 ];
 
 const ALL_PLAYERS = [...VETS_AND_LEGENDS, ...ROOKIES];
@@ -203,6 +243,9 @@ const POOL = CATS.filter(c => c.weight !== undefined).concat([{name:'Base', colo
 const POOL_TOTAL = POOL.reduce((s, c) => s + c.weight, 0);
 
 let packs = 0;
+let currentPackCards = [];
+let revealedCount = 0;
+let packState = 'IDLE'; // 'IDLE', 'RIPPED'
 const counts = Object.fromEntries(CATS.map(c => [c.name, 0]));
 
 function resolveCardDetails(catName) {
@@ -217,9 +260,17 @@ function resolveCardDetails(catName) {
     player = ALL_PLAYERS[Math.floor(Math.random() * ALL_PLAYERS.length)];
     detail = "Refractor";
   } else if (catName === 'Inserts') {
-    player = ALL_PLAYERS[Math.floor(Math.random() * ALL_PLAYERS.length)];
     const subs = CATS.find(c => c.name === 'Inserts').subTypes;
-    detail = subs[Math.floor(Math.random() * subs.length)];
+    const sub = subs[Math.floor(Math.random() * subs.length)];
+    detail = sub;
+
+    if (sub === 'Fresh Out of the Box') {
+      player = ROOKIES[Math.floor(Math.random() * ROOKIES.length)];
+    } else if (sub === 'Forever') {
+      player = VETS_AND_LEGENDS[Math.floor(Math.random() * VETS_AND_LEGENDS.length)];
+    } else {
+      player = ALL_PLAYERS[Math.floor(Math.random() * ALL_PLAYERS.length)];
+    }
   } else if (catName === 'Parallels') {
     player = ALL_PLAYERS[Math.floor(Math.random() * ALL_PLAYERS.length)];
     const pData = randParallel();
@@ -234,25 +285,21 @@ function resolveCardDetails(catName) {
     const subs = CATS.find(c => c.name === 'Autographs').subTypes;
     const sub = subs[Math.floor(Math.random() * subs.length)];
     
-    if (sub.includes('Rookie')) {
-      player = ROOKIES[Math.floor(Math.random() * ROOKIES.length)];
-    } else {
-      player = VETS_AND_LEGENDS[Math.floor(Math.random() * VETS_AND_LEGENDS.length)];
-    }
-
     if (sub === 'Pristine Pair Dual Auto') {
-      let p2 = ROOKIES[Math.floor(Math.random() * ROOKIES.length)];
-      while (p2 === player) p2 = ROOKIES[Math.floor(Math.random() * ROOKIES.length)];
-      player = `${player} & ${p2}`;
+      player = DUAL_AUTO_PAIRS[Math.floor(Math.random() * DUAL_AUTO_PAIRS.length)];
       detail = `${sub} (SSP Base)`;
+    } else if (sub === 'Pristine Rookie Autographs') {
+      player = ROOKIES[Math.floor(Math.random() * ROOKIES.length)];
+      detail = sub;
     } else {
+      player = ALL_PLAYERS[Math.floor(Math.random() * ALL_PLAYERS.length)];
       detail = sub;
     }
   } else if (catName === 'Autograph Relics') {
     const subs = CATS.find(c => c.name === 'Autograph Relics').subTypes;
     const sub = subs[Math.floor(Math.random() * subs.length)];
     
-    if (sub.includes('Rookie')) {
+    if (sub === 'Pristine Pieces Rookie Autos') {
       player = ROOKIES[Math.floor(Math.random() * ROOKIES.length)];
     } else {
       player = VETS_AND_LEGENDS[Math.floor(Math.random() * VETS_AND_LEGENDS.length)];
@@ -261,9 +308,15 @@ function resolveCardDetails(catName) {
     detail = `${sub} - ${pData.text}`;
     printRun = pData.print;
   } else if (catName === 'Super Short Prints (SSP)') {
-    player = ALL_PLAYERS[Math.floor(Math.random() * ALL_PLAYERS.length)];
     const subs = CATS.find(c => c.name === 'Super Short Prints (SSP)').subTypes;
-    detail = subs[Math.floor(Math.random() * subs.length)];
+    const sub = subs[Math.floor(Math.random() * subs.length)];
+    detail = sub;
+
+    if (sub === 'Grandmasters') {
+      player = VETS_AND_LEGENDS[Math.floor(Math.random() * VETS_AND_LEGENDS.length)];
+    } else {
+      player = ALL_PLAYERS[Math.floor(Math.random() * ALL_PLAYERS.length)];
+    }
   }
 
   return { player, detail, printRun };
@@ -286,14 +339,14 @@ function shuffle(a) {
   return a;
 }
 
-function openOnce() {
+function openPack() {
   const packCards = [];
   
   let baseData = resolveCardDetails('Base');
-  packCards.push({ cat: 'Base', color: CATS[0].color, ...baseData });
+  packCards.push({ cat: 'Base', color: CATS[0].color, ...baseData, revealed: false });
   
   let refData = resolveCardDetails('Base Refractor');
-  packCards.push({ cat: 'Base Refractor', color: CATS[1].color, ...refData });
+  packCards.push({ cat: 'Base Refractor', color: CATS[1].color, ...refData, revealed: false });
   
   for (let i = 0; i < 2; i++) {
     const chosenCat = drawSlot();
@@ -301,58 +354,97 @@ function openOnce() {
     packCards.push({
       cat: chosenCat.name,
       color: chosenCat.color,
-      ...data
+      ...data,
+      revealed: false
     });
   }
 
   shuffle(packCards);
-  packCards.forEach(c => counts[c.cat]++);
+  currentPackCards = packCards;
+  revealedCount = 0;
   packs++;
-  return packCards;
+  packState = 'RIPPED';
+  
+  packCards.forEach(c => counts[c.cat]++);
+  renderUI();
 }
 
-function render(lastPack) {
+function renderUI() {
   document.getElementById('packCount').textContent = packs;
   document.getElementById('cardCount').textContent = packs * 4;
 
   const cardsEl = document.getElementById('cards');
   cardsEl.innerHTML = '';
-  let rareHitName = null;
+  
+  let bestHit = null;
 
-  (lastPack || []).forEach(c => {
-    const div = document.createElement('div');
+  currentPackCards.forEach((c, index) => {
+    const container = document.createElement('div');
+    const isRevealed = (packState === 'IDLE' || c.revealed);
+    container.className = 'card-container' + (isRevealed ? ' revealed unclickable' : '');
+    
     const isRare = RARE_CATS.has(c.cat);
-    
     let extraClass = '';
-    if (c.printRun === 1) {
-      extraClass = ' superfractor';
-    } else if (c.printRun === 50) {
-      extraClass = ' gold-shine';
-    } else if (c.printRun <= 5) {
-      extraClass = ' flash';
-    } else if (isRare) {
-      extraClass = ' rare';
-    }
+    if (c.printRun === 1) extraClass = ' superfractor';
+    else if (c.printRun === 50) extraClass = ' gold-shine';
+    else if (c.printRun <= 5) extraClass = ' flash';
+    else if (isRare) extraClass = ' rare';
 
-    div.className = 'card' + extraClass;
-    div.style.background = c.color;
-    if(isRare && c.printRun !== 1) div.style.color = '#0c1016';
-    
-    div.innerHTML = `
-      <div class="cat-badge">${c.cat}</div>
-      <div class="card-body">
-        <span class="pname">${c.player}</span>
-        <span class="det">${c.detail}</span>
+    container.innerHTML = `
+      <div class="card-inner">
+        <div class="card-face card-back">
+          <span>Card ${index + 1}</span>Topps Pristine
+        </div>
+        <div class="card-face card-front ${extraClass}" style="background:${c.color}; ${isRare && c.printRun !== 1 ? 'color:#0c1016;' : ''}">
+          <div class="cat-badge">${c.cat}</div>
+          <div class="card-body">
+            <span class="pname">${c.player}</span>
+            <span class="det">${c.detail}</span>
+          </div>
+        </div>
       </div>
     `;
-    cardsEl.appendChild(div);
-    if (isRare || c.printRun <= 50) rareHitName = `${c.cat} — ${c.player} (${c.detail})`;
+
+    if (packState === 'RIPPED' && !isRevealed) {
+      container.addEventListener('click', function() {
+        if (!c.revealed) {
+          c.revealed = true;
+          revealedCount++;
+          if (revealedCount >= 4) {
+            packState = 'IDLE';
+          }
+          renderUI();
+        }
+      });
+    }
+
+    cardsEl.appendChild(container);
+    if (isRare || c.printRun <= 50) {
+      if (!bestHit || c.printRun < (bestHit.printRun || 999)) {
+        bestHit = c;
+      }
+    }
   });
 
-  document.getElementById('hitNote').innerHTML = rareHitName
-    ? `Notable Pull: <b>${rareHitName}</b>`
-    : (lastPack ? 'Standard pack contents.' : 'Rip a pack to see what you get.');
+  const mainActionBtn = document.getElementById('mainActionBtn');
+  if (packState === 'IDLE') {
+    mainActionBtn.textContent = 'Rip a pack';
+    if (packs === 0) {
+      document.getElementById('hitNote').textContent = 'Rip a pack to test your box luck.';
+    } else if (bestHit) {
+      document.getElementById('hitNote').innerHTML = `Notable Pull: <b>${bestHit.cat} — ${bestHit.player} (${bestHit.detail})</b>`;
+    } else {
+      document.getElementById('hitNote').textContent = 'Standard pack contents.';
+    }
+  } else {
+    mainActionBtn.textContent = 'Reveal All';
+    document.getElementById('hitNote').textContent = `Click cards to flip them open (${revealedCount}/4 revealed).`;
+  }
 
+  renderStats();
+}
+
+function renderStats() {
   const tbody = document.querySelector('#statsTable tbody');
   tbody.innerHTML = '';
   CATS.forEach(c => {
@@ -368,18 +460,28 @@ function render(lastPack) {
   });
 }
 
-document.getElementById('openBtn').addEventListener('click', () => render(openOnce()));
-document.getElementById('open10').addEventListener('click', () => {
-  let last; for (let i = 0; i < 10; i++) last = openOnce(); render(last);
-});
-document.getElementById('open100').addEventListener('click', () => {
-  let last; for (let i = 0; i < 100; i++) last = openOnce(); render(last);
-});
-document.getElementById('resetBtn').addEventListener('click', () => {
-  packs = 0; CATS.forEach(c => counts[c.name] = 0); render(null);
+document.getElementById('mainActionBtn').addEventListener('click', () => {
+  if (packState === 'IDLE') {
+    openPack();
+  } else {
+    currentPackCards.forEach(c => c.revealed = true);
+    revealedCount = 4;
+    packState = 'IDLE';
+    renderUI();
+  }
 });
 
-render(null);
+document.getElementById('resetBtn').addEventListener('click', () => {
+  packs = 0;
+  currentPackCards = [];
+  revealedCount = 0;
+  packState = 'IDLE';
+  CATS.forEach(c => counts[c.name] = 0);
+  document.getElementById('cards').innerHTML = '';
+  renderUI();
+});
+
+renderUI();
 </script>
 </body>
 </html>
